@@ -54,9 +54,49 @@
 </template>
 
 <script lang="ts" setup>
+let tokenClient: any = null
+
 const handleSocialLogin = (provider: string) => {
-  console.log(`Logging in with ${provider}`)
-  // Here you would implement the actual social login logic
+  if (provider === 'google') {
+    if (!tokenClient) {
+      tokenClient = window.google.accounts.oauth2.initTokenClient({
+        client_id: '759530149928-99h301igs9pmcragspj1bcr755r2pt0h.apps.googleusercontent.com',
+        scope: 'openid email profile',
+        callback: handleGoogleCredential,
+      })
+    }
+
+    tokenClient.requestAccessToken()
+  }
+}
+
+const handleGoogleCredential = async (response: any) => {
+  console.log('Google access_token response:', response)
+
+  const accessToken = response.access_token
+  if (!accessToken) {
+    alert('Google 로그인에 실패했습니다.')
+    return
+  }
+
+  try {
+    const res = await fetch('http://localhost:8080/oauth/google', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ accessToken }), // 백엔드에서 accessToken 처리
+    })
+
+    if (!res.ok) throw new Error('Login failed')
+    const data = await res.json()
+
+    localStorage.setItem('accessToken', data.token)
+    alert('로그인 성공!')
+
+    // TODO: router.push('/dashboard') 등 페이지 이동
+  } catch (err) {
+    console.error('Login error', err)
+    alert('Google 로그인에 실패했습니다.')
+  }
 }
 </script>
 
