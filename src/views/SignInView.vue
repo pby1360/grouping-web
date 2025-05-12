@@ -54,27 +54,26 @@
 </template>
 
 <script lang="ts" setup>
-let tokenClient: any = null
+// let tokenClient: any = null
 
 const handleSocialLogin = (provider: string) => {
   if (provider === 'google') {
-    if (!tokenClient) {
-      tokenClient = window.google.accounts.oauth2.initTokenClient({
-        client_id: '759530149928-99h301igs9pmcragspj1bcr755r2pt0h.apps.googleusercontent.com',
-        scope: 'openid email profile',
-        callback: handleGoogleCredential,
-      })
-    }
-
-    tokenClient.requestAccessToken()
+    const codeClient = window.google.accounts.oauth2.initCodeClient({
+      client_id: '759530149928-99h301igs9pmcragspj1bcr755r2pt0h.apps.googleusercontent.com',
+      scope: 'openid email profile',
+      redirect_uri: 'http://localhost:5173', // 프론트 or 백엔드에 설정 가능
+      callback: (response) => {
+        handleGoogleCredential(response)
+      },
+    })
+    codeClient.requestCode()
   }
 }
 
 const handleGoogleCredential = async (response: any) => {
-  console.log('Google access_token response:', response)
-
-  const accessToken = response.access_token
-  if (!accessToken) {
+  const { code } = response
+  console.log('Google access_token response:', code)
+  if (!code) {
     alert('Google 로그인에 실패했습니다.')
     return
   }
@@ -83,7 +82,7 @@ const handleGoogleCredential = async (response: any) => {
     const res = await fetch('http://localhost:8080/oauth/google', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ accessToken }), // 백엔드에서 accessToken 처리
+      body: JSON.stringify({ code }), // 백엔드에서 accessToken 처리
     })
 
     if (!res.ok) throw new Error('Login failed')
